@@ -1,0 +1,7 @@
+enum AnimeAPIType {
+
+}
+
+enum MangaAPIType {
+
+}

@@ -4,6 +4,7 @@
 //
 //  Created by Student on 4/23/26.
 //
+//https://jikan.moe/
 
 import SwiftUI
 
