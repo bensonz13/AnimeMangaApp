@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct NetworkClient: View {
+    var baseURL = "https://api.jikan.moe/v4/"
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        Text("Hello, World123!")
     }
 }
 
