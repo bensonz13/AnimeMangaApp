@@ -12,6 +12,10 @@ struct AnimeMangaApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .toolbar(.visible, for: .tabBar)
+
         }
     }
 }
+
+
