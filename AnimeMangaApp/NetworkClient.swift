@@ -10,8 +10,8 @@ import SwiftUI
 class NetworkClient {
     private let baseURL = "https://api.jikan.moe/v4"
     
-    private var topAnime: [Anime] = []
-    private var topManga: [Manga] = []
+    private(set) var topAnime: [Anime] = []
+    private(set) var topManga: [Manga] = []
     
     private var animePage: Int = 1
     private var mangaPage: Int = 1
@@ -106,6 +106,32 @@ class NetworkClient {
             let (data, _) = try await URLSession.shared.data(from: url)
             let response = try JSONDecoder().decode(MangaDetailResponse.self, from: data)
             selectedManga = response.data
+        } catch {
+            print(error)
+        }
+    }
+    
+    func getTrendingAnime() async {
+        let urlStr = "\(baseURL)/seasons/now"
+        guard let url = URL(string: urlStr) else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+            topAnime = response.data
+        } catch {
+            print(error)
+        }
+    }
+
+    func getPopularManga() async {
+        let urlStr = "\(baseURL)/manga?order_by=popularity"
+        guard let url = URL(string: urlStr) else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(MangaResponse.self, from: data)
+            topManga = response.data
         } catch {
             print(error)
         }
