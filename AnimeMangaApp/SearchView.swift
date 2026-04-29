@@ -11,8 +11,7 @@ struct SearchView: View {
     @State private var client = NetworkClient()
     
     @State private var query = ""
-    @State private var animeResults: [Anime] = []
-    @State private var mangaResults: [Manga] = []
+    @State private var results: [SearchItem] = []
     
     @State private var searchTask: Task<Void, Never>? = nil
     
@@ -33,8 +32,7 @@ struct SearchView: View {
                             
                             if newValue.trimmingCharacters(in: .whitespaces).isEmpty {
                                 await MainActor.run {
-                                    animeResults = []
-                                    mangaResults = []
+                                    results = []
                                 }
                                 return
                             }
@@ -43,38 +41,16 @@ struct SearchView: View {
                         }
                     }
                 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+                List(results) { item in
+                    switch item {
+                    case .anime(let anime):
+                        SearchAnimeRow(anime: anime)
                         
-                        if !animeResults.isEmpty {
-                            Text("Anime")
-                                .font(.title2)
-                                .bold()
-                                .padding(.horizontal)
-                            
-                            ForEach(animeResults) { anime in
-                                SearchAnimeRow(anime: anime)
-                            }
-                        }
-                        
-                        if !mangaResults.isEmpty {
-                            Text("Manga")
-                                .font(.title2)
-                                .bold()
-                                .padding(.horizontal)
-                            
-                            ForEach(mangaResults) { manga in
-                                SearchMangaRow(manga: manga)
-                            }
-                        }
-                        
-                        if animeResults.isEmpty && mangaResults.isEmpty && !query.isEmpty {
-                            Text("No results found")
-                                .foregroundColor(.gray)
-                                .padding(.top, 40)
-                        }
+                    case .manga(let manga):
+                        SearchMangaRow(manga: manga)
                     }
                 }
+                .listStyle(.plain)
             }
             .navigationTitle("Search")
         }
@@ -86,12 +62,16 @@ struct SearchView: View {
         
         let (animeResult, mangaResult) = await (anime, manga)
         
+        let combined: [SearchItem] =
+            animeResult.map { .anime($0) } +
+            mangaResult.map { .manga($0) }
+        
         await MainActor.run {
-            self.animeResults = animeResult
-            self.mangaResults = mangaResult
+            self.results = combined
         }
     }
 }
+
 
 #Preview {
     SearchView()
