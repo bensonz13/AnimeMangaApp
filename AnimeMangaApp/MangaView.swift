@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MangaView: View {
     var body: some View {
+        Text("Manga")
     }
 }
 
