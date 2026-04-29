@@ -39,6 +39,38 @@ class NetworkClient {
         }
     }
     
+    func searchAnime(query: String) async -> [Anime] {
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let urlStr = "\(baseURL)/anime?q=\(encoded)"
+        
+        guard let url = URL(string: urlStr) else { return [] }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+            return response.data
+        } catch {
+            print(error)
+            return []
+        }
+    }
+
+    func searchManga(query: String) async -> [Manga] {
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let urlStr = "\(baseURL)/manga?q=\(encoded)"
+        
+        guard let url = URL(string: urlStr) else { return [] }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(MangaResponse.self, from: data)
+            return response.data
+        } catch {
+            print(error)
+            return []
+        }
+    }
+    
     func getTopManga() async {
         let urlStr = "\(baseURL)/top/manga?page=\(mangaPage)"
         guard let url = URL(string: urlStr) else { return }
