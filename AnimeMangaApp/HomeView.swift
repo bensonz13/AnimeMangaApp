@@ -5,16 +5,26 @@
 //  Created by Student on 4/27/26.
 //
 
+import Combine
+import Foundation
 import SwiftUI
 
 struct HomeView: View {
     @State private var client = NetworkClient()
     @State private var featuredAnime: Anime? = nil
+    @State private var timer = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 25) {
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Discover")
+                            .font(.largeTitle)
+                            .bold()
+                    }
+                    .padding(.horizontal)
                     
                     if let anime = featuredAnime,
                        let urlString = anime.images?.jpg.image_url,
@@ -46,6 +56,11 @@ struct HomeView: View {
                         }
                         .cornerRadius(15)
                         .padding(.horizontal)
+                        .onReceive(timer) { _ in
+                            if !client.topAnime.isEmpty {
+                                featuredAnime = client.topAnime.randomElement()
+                            }
+                        }
                     }
                     
                     AnimeSectionView(title: "🔥 Trending Anime", items: client.topAnime)
@@ -54,15 +69,13 @@ struct HomeView: View {
                 }
                 .padding(.vertical)
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Discover")
-        }
-        .task {
-            await client.getTopAnime()
-            await client.getTopManga()
-            
-            if !client.topAnime.isEmpty {
-                featuredAnime = client.topAnime.randomElement()
+            .task {
+                await client.getTopAnime()
+                await client.getTopManga()
+                
+                if !client.topAnime.isEmpty {
+                    featuredAnime = client.topAnime.randomElement()
+                }
             }
         }
     }
