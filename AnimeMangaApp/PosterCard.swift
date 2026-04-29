@@ -48,7 +48,10 @@ struct AnimePosterCard: View {
                     title: detail.title,
                     imageURL: detail.images?.jpg.image_url,
                     score: detail.score,
-                    synopsis: detail.synopsis
+                    synopsis: detail.synopsis,
+                    link: detail.url,
+                    title_japanese: detail.title_japanese,
+                    status: detail.status
                 )
             }
         }
@@ -96,20 +99,24 @@ struct MangaPosterCard: View {
                     title: detail.title,
                     imageURL: detail.images?.jpg.image_url,
                     score: detail.score,
-                    synopsis: detail.synopsis
+                    synopsis: detail.synopsis,
+                    link: detail.url,
+                    title_japanese: detail.title_japanese,
+                    status: detail.status
                 )
             }
         }
     }
 }
 
-// MARK: - Shared Detail Sheet
-
 struct MediaDetailSheet: View {
     let title: String
     let imageURL: String?
     let score: Double?
     let synopsis: String?
+    let link: String?
+    let title_japanese: String?
+    let status: String?
 
     var body: some View {
         ScrollView {
@@ -129,6 +136,18 @@ struct MediaDetailSheet: View {
                     Text(title)
                         .font(.title2)
                         .bold()
+                    
+                    if let title_japanese {
+                        Text(title_japanese)
+                            .font(.title3)
+                    }
+                    
+                    if let status {
+                        Text(status)
+                            .font(.system(size: 30))
+                            .bold()
+                            .foregroundStyle(.red)
+                    }
 
                     if let score {
                         Label(String(format: "%.1f", score), systemImage: "star.fill")
@@ -141,6 +160,11 @@ struct MediaDetailSheet: View {
                             .font(.body)
                             .foregroundStyle(.secondary)
                     }
+                    
+                    if let site = link, let url = URL(string: site) {
+                        Link("Visit MAL site", destination: url)
+                    }
+                    
                 }
                 .padding()
             }
