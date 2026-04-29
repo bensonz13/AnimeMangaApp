@@ -9,17 +9,19 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var client = NetworkClient()
+    @State private var featuredAnime: Anime? = nil
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 25) {
                     
-                    if let first = client.topAnime.first,
-                       let urlString = first.images?.jpg.image_url,
+                    if let anime = featuredAnime,
+                       let urlString = anime.images?.jpg.image_url,
                        let url = URL(string: urlString) {
                         
                         ZStack(alignment: .bottomLeading) {
+                            
                             AsyncImage(url: url) { image in
                                 image
                                     .resizable()
@@ -31,12 +33,12 @@ struct HomeView: View {
                             .clipped()
                             
                             LinearGradient(
-                                colors: [.clear, .black.opacity(0.8)],
+                                colors: [.clear, .black.opacity(0.85)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                             
-                            Text(first.title)
+                            Text(anime.title)
                                 .font(.title)
                                 .bold()
                                 .foregroundColor(.white)
@@ -54,9 +56,13 @@ struct HomeView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Discover")
-            .task {
-                await client.getTopAnime()
-                await client.getTopManga()
+        }
+        .task {
+            await client.getTopAnime()
+            await client.getTopManga()
+            
+            if !client.topAnime.isEmpty {
+                featuredAnime = client.topAnime.randomElement()
             }
         }
     }
