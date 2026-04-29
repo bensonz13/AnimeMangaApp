@@ -12,6 +12,8 @@ struct Anime: Identifiable, Codable {
     var id: Int { mal_id }
     let title: String
     let images: Images?
+    let score: Double?    
+    let synopsis: String?
 }
 
 struct MangaResponse: Codable {
@@ -22,12 +24,14 @@ struct MangaResponse: Codable {
 struct MangaDetailResponse: Codable {
     let data: Manga
 }
-
+ 
 struct Manga: Identifiable, Codable {
     let mal_id: Int
     var id: Int { mal_id }
     let title: String
     let images: Images?
+    let score: Double?
+    let synopsis: String?
 }
 
 struct Images: Codable {
