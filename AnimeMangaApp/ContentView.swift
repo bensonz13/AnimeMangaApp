@@ -13,24 +13,22 @@ struct ContentView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Image(systemName: "house.fill")
-                    Text("Home")
-                }
-            SearchView()
-                .tabItem {
-                    Image(systemName: "magnifyingglass")
-                    Text("Search")
+                    Label("Home", systemImage: "house")
                 }
             
             AnimeView()
                 .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("Anime")
+                    Label("Anime", systemImage: "play.rectangle")
                 }
+            
             MangaView()
                 .tabItem {
-                    Image(systemName: "bookmark.fill")
-                    Text("Manga")
+                    Label("Manga", systemImage: "book")
+                }
+            
+            MeView()
+                .tabItem {
+                    Label("Me", systemImage: "person")
                 }
         }
     }

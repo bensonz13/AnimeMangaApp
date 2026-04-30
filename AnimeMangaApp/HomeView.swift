@@ -64,7 +64,6 @@ struct HomeView: View {
                     }
                     
                     AnimeSectionView(title: "🔥 Trending Anime", items: client.topAnime)
-                    AnimeSectionView(title: "⭐ Top Anime", items: client.topAnime)
                     MangaSectionView(title: "📚 Popular Manga", items: client.topManga)
                 }
                 .padding(.vertical)

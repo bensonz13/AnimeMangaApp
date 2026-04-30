@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct AnimeMangaApp: App {
@@ -13,8 +14,11 @@ struct AnimeMangaApp: App {
         WindowGroup {
             ContentView()
                 .toolbar(.visible, for: .tabBar)
-
         }
+        .modelContainer(for: [
+            FavoriteAnime.self,
+            FavoriteManga.self
+        ])
     }
 }
 
