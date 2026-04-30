@@ -12,6 +12,7 @@ class NetworkClient {
     
     private(set) var topAnime: [Anime] = []
     private(set) var topManga: [Manga] = []
+    private(set) var nowAiringAnime: [Anime] = []
     
     private var animePage: Int = 1
     private var mangaPage: Int = 1
@@ -164,6 +165,23 @@ class NetworkClient {
             let (data, _) = try await URLSession.shared.data(from: url)
             let response = try JSONDecoder().decode(MangaResponse.self, from: data)
             topManga = response.data
+        } catch {
+            print(error)
+        }
+    }
+    
+    func getNowAiringAnime() async {
+        let urlStr = "\(baseURL)/seasons/now"
+        guard let url = URL(string: urlStr) else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+            
+            await MainActor.run {
+                self.nowAiringAnime = response.data
+            }
+            
         } catch {
             print(error)
         }

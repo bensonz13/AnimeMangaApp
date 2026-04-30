@@ -15,8 +15,6 @@ struct MeView: View {
     var body: some View {
         NavigationStack {
             List {
-                
-                // 👤 Profile section
                 Section {
                     HStack {
                         Image(systemName: "person.circle.fill")
@@ -35,7 +33,6 @@ struct MeView: View {
                     .padding(.vertical, 6)
                 }
                 
-                // ❤️ Anime Favorites
                 Section("Favorite Anime") {
                     if animeFavorites.isEmpty {
                         Text("No favorites yet")
@@ -61,7 +58,6 @@ struct MeView: View {
                     }
                 }
                 
-                // 📚 Manga Favorites
                 Section("Favorite Manga") {
                     if mangaFavorites.isEmpty {
                         Text("No favorites yet")

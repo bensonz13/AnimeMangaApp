@@ -16,12 +16,12 @@ struct ContentView: View {
                     Label("Home", systemImage: "house")
                 }
             
-            AnimeView()
+            MediaView(type: .anime)
                 .tabItem {
                     Label("Anime", systemImage: "play.rectangle")
                 }
             
-            MangaView()
+            MediaView(type: .manga)
                 .tabItem {
                     Label("Manga", systemImage: "book")
                 }
