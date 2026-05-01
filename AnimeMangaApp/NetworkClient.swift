@@ -13,6 +13,9 @@ class NetworkClient {
     private(set) var topAnime: [Anime] = []
     private(set) var topManga: [Manga] = []
     
+    private(set) var selectedSeason: [Anime] = []
+    
+    private var aSeasonPage: Int = 1
     private var animePage: Int = 1
     private var mangaPage: Int = 1
     
@@ -54,7 +57,7 @@ class NetworkClient {
             return []
         }
     }
-
+    
     func searchManga(query: String) async -> [Manga] {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let urlStr = "\(baseURL)/manga?q=\(encoded)"
@@ -155,7 +158,7 @@ class NetworkClient {
             print(error)
         }
     }
-
+    
     func getPopularManga() async {
         let urlStr = "\(baseURL)/manga?order_by=popularity"
         guard let url = URL(string: urlStr) else { return }
@@ -168,4 +171,29 @@ class NetworkClient {
             print(error)
         }
     }
+    
+    func getAnimeSeason(year: Int, season: String) async {
+        let urlStr = "\(baseURL)/seasons/\(year)/\(season)?page=\(aSeasonPage)"
+        guard let url = URL(string: urlStr) else { return }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+            
+            await MainActor.run {
+                for item in response.data {
+                    if !selectedSeason.contains(where: { $0.mal_id == item.mal_id }) {
+                        selectedSeason.append(item)
+                    }
+                    
+                    self.aSeasonPage+=1
+                }
+            }
+            print(selectedSeason)
+            print(selectedSeason, " selectedseason is empty")
+        } catch {
+            print(error)
+        }
+    }
+    
 }
