@@ -1,3 +1,8 @@
+enum MediaType {
+    case anime
+    case manga
+}
+
 struct AnimeResponse: Codable {
     let data: [Anime]
     let pagination: Pagination

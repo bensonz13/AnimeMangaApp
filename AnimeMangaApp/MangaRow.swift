@@ -1,20 +1,21 @@
 //
-//  AnimeRow.swift
+//  MangaRow.swift
 //  AnimeMangaApp
 //
-//  Created by Student on 4/29/26.
+//  Created by Student on 4/30/26.
 //
+
 import SwiftUI
 
-struct AnimeRow: View {
-    let anime: Anime
+struct MangaRow: View {
+    let manga: Manga
 
     var body: some View {
         HStack {
             
             ZStack(alignment: .topLeading) {
                 
-                if let urlString = anime.images?.jpg.image_url,
+                if let urlString = manga.images?.jpg.image_url,
                    let url = URL(string: urlString) {
                     
                     AsyncImage(url: url) { image in
@@ -28,7 +29,7 @@ struct AnimeRow: View {
                 }
             }
 
-            Text(anime.title)
+            Text(manga.title)
                 .lineLimit(2)
 
             Spacer()
