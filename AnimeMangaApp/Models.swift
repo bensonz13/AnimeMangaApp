@@ -9,7 +9,6 @@ import SwiftUI
 import SwiftData
 import Foundation
 
-
 enum MediaType {
     case anime
     case manga

@@ -105,7 +105,6 @@ struct PosterCard: View {
     }
 }
 
-
 struct HeartButton: View {
     @Environment(\.modelContext) private var context
 
@@ -177,10 +176,7 @@ struct AnimeSectionView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
                     ForEach(items) { anime in
-                        ZStack(alignment: .topTrailing) {
-                            PosterCard(anime: anime) { await onSelect(anime) }
-                            HeartButton(anime: anime).padding(6)
-                        }
+                        PosterCard(anime: anime) { await onSelect(anime) }
                     }
                 }
                 .padding(.horizontal)
@@ -203,10 +199,7 @@ struct MangaSectionView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
                     ForEach(items) { manga in
-                        ZStack(alignment: .topTrailing) {
-                            PosterCard(manga: manga) { await onSelect(manga) }
-                            HeartButton(manga: manga).padding(6)
-                        }
+                        PosterCard(manga: manga) { await onSelect(manga) }
                     }
                 }
                 .padding(.horizontal)

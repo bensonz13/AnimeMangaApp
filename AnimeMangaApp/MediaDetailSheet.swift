@@ -17,7 +17,6 @@ struct MediaDetailSheet: View {
     @Query private var animeFavorites: [FavoriteAnime]
     @Query private var mangaFavorites: [FavoriteManga]
 
-
     private var title: String { anime?.title ?? manga?.title ?? "" }
     private var imageURL: String? { anime?.images?.jpg.image_url ?? manga?.images?.jpg.image_url }
     private var score: Double? { anime?.score ?? manga?.score }
@@ -25,7 +24,6 @@ struct MediaDetailSheet: View {
     private var link: String? { anime?.url ?? manga?.url }
     private var titleJapanese: String? { anime?.title_japanese ?? manga?.title_japanese }
     private var status: String? { anime?.status ?? manga?.status }
-
 
     private var episodes: Int? { anime?.episodes }
 
@@ -110,18 +108,14 @@ struct MediaDetailSheet: View {
             if let existing = animeFavorites.first(where: { $0.id == anime.mal_id }) {
                 context.delete(existing)
             } else {
-                context.insert(FavoriteAnime(id: anime.mal_id, title: anime.title,
-                                             imageURL: anime.images?.jpg.image_url,
-                                             score: anime.score))
+                context.insert(FavoriteAnime(id: anime.mal_id, title: anime.title, imageURL: anime.images?.jpg.image_url, score: anime.score))
             }
         }
         if let manga {
             if let existing = mangaFavorites.first(where: { $0.id == manga.mal_id }) {
                 context.delete(existing)
             } else {
-                context.insert(FavoriteManga(id: manga.mal_id, title: manga.title,
-                                             imageURL: manga.images?.jpg.image_url,
-                                             score: manga.score))
+                context.insert(FavoriteManga(id: manga.mal_id, title: manga.title, imageURL: manga.images?.jpg.image_url, score: manga.score))
             }
         }
     }

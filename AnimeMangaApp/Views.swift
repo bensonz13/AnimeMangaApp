@@ -184,11 +184,6 @@ struct MediaView: View {
                             showDetail = true
                         }
                     }
-                    .onAppear {
-                        if query.isEmpty, anime.mal_id == client.topAnime.last?.mal_id {
-                            Task { await client.getTopAnime() }
-                        }
-                    }
             }
         } else {
             ForEach(query.isEmpty ? client.topManga : searchResultsManga) { manga in
@@ -198,11 +193,6 @@ struct MediaView: View {
                         Task {
                             await client.getMangaByID(id: manga.mal_id)
                             showDetail = true
-                        }
-                    }
-                    .onAppear {
-                        if query.isEmpty, manga.mal_id == client.topManga.last?.mal_id {
-                            Task { await client.getTopManga() }
                         }
                     }
             }
@@ -220,6 +210,10 @@ struct MediaView: View {
 struct MeView: View {
     @Query private var animeFavorites: [FavoriteAnime]
     @Query private var mangaFavorites: [FavoriteManga]
+
+    @State private var client = NetworkClient()
+    @State private var showDetail = false
+    @State private var detailType: MediaType = .anime
 
     var body: some View {
         NavigationStack {
@@ -239,14 +233,25 @@ struct MeView: View {
                     .padding(.vertical, 6)
                 }
 
-                favoritesSection(title: "Favorite Anime", favorites: animeFavorites)
-                favoritesSection(title: "Favorite Manga", favorites: mangaFavorites)
+                favoritesSection(title: "Favorite Anime", favorites: animeFavorites, isAnime: true)
+                favoritesSection(title: "Favorite Manga", favorites: mangaFavorites, isAnime: false)
             }
             .navigationTitle("Me")
+            .sheet(isPresented: $showDetail) {
+                if detailType == .manga {
+                    MediaDetailSheet(anime: nil, manga: client.selectedManga)
+                } else {
+                    MediaDetailSheet(anime: client.selectedAnime, manga: nil)
+                }
+            }
         }
     }
 
-    private func favoritesSection<T: PersistentModel & FavoriteItem>(title: String, favorites: [T]) -> some View {
+    private func favoritesSection<T: PersistentModel & FavoriteItem>(
+        title: String,
+        favorites: [T],
+        isAnime: Bool
+    ) -> some View {
         Section(title) {
             if favorites.isEmpty {
                 Text("No favorites yet").foregroundColor(.secondary)
@@ -261,13 +266,31 @@ struct MeView: View {
                             .clipped()
                             .cornerRadius(6)
                         }
+
                         VStack(alignment: .leading, spacing: 4) {
                             Text(fav.title).font(.subheadline)
+
                             if let score = fav.score {
-                                Label(String(format: "%.1f", score), systemImage: "star.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.orange)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                    Text(String(format: "%.1f", score))
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.orange)
                             }
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        Task {
+                            if isAnime {
+                                await client.getAnimeByID(id: fav.malID)
+                                detailType = .anime
+                            } else {
+                                await client.getMangaByID(id: fav.malID)
+                                detailType = .manga
+                            }
+                            showDetail = true
                         }
                     }
                 }
@@ -277,71 +300,20 @@ struct MeView: View {
 }
 
 protocol FavoriteItem {
+    var malID: Int { get }
     var title: String { get }
     var imageURL: String? { get }
     var score: Double? { get }
 }
-extension FavoriteAnime: FavoriteItem {}
-extension FavoriteManga: FavoriteItem {}
 
-
-struct DropDownView: View {
-    @State private var client = NetworkClient()
-
-    private let currentYear = Calendar.current.component(.year, from: Date())
-    private let seasons = ["winter", "spring", "summer", "fall"]
-    private var years: [Int] { Array((1917...Calendar.current.component(.year, from: Date())).reversed()) }
-
-    @State private var selectedYear = Calendar.current.component(.year, from: Date())
-    @State private var selectedSeason = "winter"
-    @State private var show = false
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                if show {
-                    List(client.selectedSeason) { anime in
-                        MediaRow(anime: anime)
-                            .onAppear {
-                                if anime.id == client.selectedSeason.last?.id {
-                                    Task { await client.getAnimeSeason(year: selectedYear, season: selectedSeason) }
-                                }
-                            }
-                    }
-                }
-
-                HStack {
-                    Picker("\(selectedYear)", selection: $selectedYear) {
-                        ForEach(years, id: \.self) { year in
-                            Text(String(year)).tag(year)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .buttonStyle(.bordered)
-                    .tint(.primary)
-
-                    Picker(selection: $selectedSeason) {
-                        ForEach(seasons, id: \.self) { season in
-                            Text(season.capitalized).tag(season)
-                        }
-                    } label: {
-                        Text(selectedSeason.capitalized).fontWeight(.medium)
-                    }
-                    .pickerStyle(.menu)
-                    .menuIndicator(.hidden)
-                }
-                .padding(.horizontal)
-
-                Button("Show Selected Season") {
-                    client.resetSeason()
-                    show = true
-                    Task { await client.getAnimeSeason(year: selectedYear, season: selectedSeason) }
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .navigationTitle("Seasons")
-        }
-    }
+extension FavoriteAnime: FavoriteItem {
+    var malID: Int { id }
 }
 
-#Preview { ContentView() }
+extension FavoriteManga: FavoriteItem {
+    var malID: Int { id }
+}
+
+#Preview {
+    ContentView()
+}
