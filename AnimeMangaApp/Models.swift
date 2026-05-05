@@ -25,6 +25,7 @@ struct Anime: Identifiable, Codable {
     let status: String?
     let score: Double?
     let synopsis: String?
+    let rating: String?
 }
 
 struct Manga: Identifiable, Codable {
@@ -38,6 +39,7 @@ struct Manga: Identifiable, Codable {
     let status: String?
     let score: Double?
     let synopsis: String?
+    let rating: String?
 }
 
 struct Images: Codable {
