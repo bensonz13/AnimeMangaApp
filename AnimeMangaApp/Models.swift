@@ -101,3 +101,14 @@ class FavoriteManga {
         self.score = score
     }
 }
+
+@Model
+class UserSettings {
+    var isSafeContentOnly: Bool
+    var excludedRatings: [String]
+    
+    init(isSafeContentOnly: Bool = true, excludedRatings: [String] = []) {
+        self.isSafeContentOnly = isSafeContentOnly
+        self.excludedRatings = excludedRatings
+    }
+}
