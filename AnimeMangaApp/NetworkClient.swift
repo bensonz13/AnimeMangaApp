@@ -32,7 +32,15 @@ class NetworkClient {
     func getTopAnime() async {
         do {
             let response = try await fetch("\(baseURL)/top/anime?page=\(animePage)", as: AnimeResponse.self)
-            for item in response.data where !topAnime.contains(where: { $0.mal_id == item.mal_id }) {
+            
+            let filteredData = response.data.filter { anime in
+                guard let rating = anime.rating else { return true }
+                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
+                
+                return !isRestricted
+            }
+            
+            for item in filteredData where !topAnime.contains(where: { $0.mal_id == item.mal_id }) {
                 topAnime.append(item)
             }
             animePage += 1
@@ -54,7 +62,13 @@ class NetworkClient {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         do {
             let response = try await fetch("\(baseURL)/anime?q=\(encoded)", as: AnimeResponse.self)
-            return response.data
+            
+            return response.data.filter { anime in
+                guard let rating = anime.rating else { return true }
+                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
+                
+                return !isRestricted
+            }
         } catch { print("searchAnime:", error); return [] }
     }
 
@@ -100,20 +114,20 @@ class NetworkClient {
     func getAnimeSeason(year: Int, season: String) async {
         do {
             let response = try await fetch("\(baseURL)/seasons/\(year)/\(season)?page=\(seasonPage)", as: AnimeResponse.self)
-            for item in response.data where !selectedSeason.contains(where: { $0.mal_id == item.mal_id }) {
+            
+            let filteredData = response.data.filter { anime in
+                guard let rating = anime.rating else { return true }
+                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
+                
+                return !isRestricted
+            }
+            
+            for item in filteredData where !selectedSeason.contains(where: { $0.mal_id == item.mal_id }) {
                 selectedSeason.append(item)
             }
             seasonPage += 1
         } catch { print("getAnimeSeason:", error) }
     }
-
-    func getNowAiringAnime() async {
-        do {
-            let response = try await fetch("\(baseURL)/seasons/now", as: AnimeResponse.self)
-            topAnime = response.data
-        } catch { print("getNowAiringAnime:", error) }
-    }
-
 
     func resetSeason() {
         selectedSeason = []

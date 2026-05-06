@@ -34,6 +34,8 @@ struct MediaDetailSheet: View {
         if let manga  { return mangaFavorites.contains  { $0.id == manga.mal_id } }
         return false
     }
+    
+    private var rating: String? { anime?.rating }
 
     var body: some View {
         ScrollView {
@@ -60,6 +62,10 @@ struct MediaDetailSheet: View {
                                 .foregroundStyle(.red)
                                 .font(.title2)
                         }
+                    }
+                    
+                    if let rating {
+                        Text(rating)
                     }
 
                     if let titleJapanese {
