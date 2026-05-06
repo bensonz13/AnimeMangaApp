@@ -207,3 +207,303 @@ struct MangaSectionView: View {
         }
     }
 }
+
+enum AnimeGenre: String, CaseIterable {
+    case action = "Action"
+    case adventure = "Adventure"
+    case comedy = "Comedy"
+    case drama = "Drama"
+    case fantasy = "Fantasy"
+    case horror = "Horror"
+    case mystery = "Mystery"
+    case romance = "Romance"
+    case sciFi = "Sci-Fi"
+    case sliceOfLife = "Slice of Life"
+    case sports = "Sports"
+    case supernatural = "Supernatural"
+    case thriller = "Thriller"
+    case mecha = "Mecha"
+
+    var id: Int {
+        switch self {
+        case .action: return 1
+        case .adventure: return 2
+        case .comedy: return 4
+        case .drama: return 8
+        case .fantasy: return 10
+        case .horror: return 14
+        case .mystery: return 7
+        case .romance: return 22
+        case .sciFi: return 24
+        case .sliceOfLife: return 36
+        case .sports: return 30
+        case .supernatural: return 37
+        case .thriller: return 41
+        case .mecha: return 18
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .action: return "⚔️"
+        case .adventure: return "🗺️"
+        case .comedy: return "😂"
+        case .drama: return "🎭"
+        case .fantasy: return "🧙"
+        case .horror: return "👻"
+        case .mystery: return "🔍"
+        case .romance: return "💕"
+        case .sciFi: return "🚀"
+        case .sliceOfLife:  return "☕"
+        case .sports: return "⚽"
+        case .supernatural: return "✨"
+        case .thriller: return "🔪"
+        case .mecha: return "🤖"
+        }
+    }
+}
+
+struct GenreChip: View {
+    let genre: AnimeGenre
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Text(genre.emoji)
+                Text(genre.rawValue)
+                    .font(.subheadline).fontWeight(.medium)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(isSelected ? Color.accentColor : Color(.secondarySystemBackground))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(isSelected ? Color.clear : Color.secondary.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.15), value: isSelected)
+    }
+}
+
+struct GenreResultsView: View {
+    let genre: AnimeGenre
+    let onSelect: (Anime) async -> Void
+
+    @State private var items: [Anime] = []
+    @State private var isLoading = true
+    @State private var showAll = false
+
+    var body: some View {
+        Group {
+            if isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+                .frame(height: 220)
+            } else if items.isEmpty {
+                Text("No results found")
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            } else {
+                VStack(alignment: .trailing, spacing: 8) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 15) {
+                            ForEach(items) { anime in
+                                PosterCard(anime: anime) {
+                                    await onSelect(anime)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    Button("View All") {
+                        showAll = true
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .task(id: genre) {
+            isLoading = true
+            items = await fetchByGenre(genreID: genre.id, sortBy: .score)
+            isLoading = false
+        }
+        .sheet(isPresented: $showAll) {
+            GenreAllView(genre: genre, onSelect: onSelect)
+        }
+    }
+
+    private func fetchByGenre(genreID: Int, sortBy: GenreSortOption) async -> [Anime] {
+        let urlStr = "https://api.jikan.moe/v4/anime?genres=\(genreID)&order_by=\(sortBy.apiValue)&sort=desc&limit=15"
+
+        guard let url = URL(string: urlStr) else { return [] }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+            return response.data
+        } catch {
+            print("fetchByGenre error:", error)
+            return []
+        }
+    }
+}
+
+struct RandomDiscoveryBanner: View {
+    let onDiscover: (MediaType) async -> Void
+    @State private var isLoading = false
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("🎲 Feeling Lucky?")
+                    .font(.headline)
+                Text("Discover something random")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Anime") {
+                Task {
+                    isLoading = true
+                    await onDiscover(.anime)
+                    isLoading = false
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+
+            Button("Manga") {
+                Task {
+                    isLoading = true
+                    await onDiscover(.manga)
+                    isLoading = false
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding()
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(14)
+        .overlay(isLoading ? AnyView(ProgressView().padding(.trailing)) : AnyView(EmptyView()),
+                 alignment: .trailing)
+    }
+}
+
+enum GenreSortOption: String, CaseIterable, Identifiable {
+    case popular = "Popular"
+    case score = "Top Rated"
+    case date = "Newest"
+
+    var id: String { rawValue }
+
+    var apiValue: String {
+        switch self {
+        case .popular: return "members"
+        case .score:   return "score"
+        case .date:    return "start_date"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .popular: return "flame"
+        case .score:   return "star"
+        case .date:    return "calendar"
+        }
+    }
+}
+
+struct GenreAllView: View {
+    let genre: AnimeGenre
+    let onSelect: (Anime) async -> Void
+
+    @State private var items: [Anime] = []
+    @State private var isLoading = true
+    @State private var selectedSort: GenreSortOption = .popular
+    @State private var showDetail = false
+    @State private var selectedAnime: Anime? = nil
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVGrid(
+                            columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
+                            spacing: 16
+                        ) {
+                            ForEach(items) { anime in
+                                PosterCard(anime: anime) {
+                                    selectedAnime = anime
+                                    await onSelect(anime)
+                                    showDetail = true
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("\(genre.emoji) \(genre.rawValue)")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { dismiss() }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        ForEach(GenreSortOption.allCases) { option in
+                            Button {
+                                selectedSort = option
+                            } label: {
+                                Label(option.rawValue, systemImage: option.icon)
+                                if selectedSort == option {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+            }
+            .task(id: selectedSort) {
+                isLoading = true
+                items = await fetchAll(sortBy: selectedSort)
+                isLoading = false
+            }
+        }
+    }
+
+    private func fetchAll(sortBy: GenreSortOption) async -> [Anime] {
+        let urlStr = "https://api.jikan.moe/v4/anime?genres=\(genre.id)&order_by=\(sortBy.apiValue)&sort=desc&limit=25"
+
+        guard let url = URL(string: urlStr) else { return [] }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+            return response.data
+        } catch {
+            print("fetchAll error:", error)
+            return []
+        }
+    }
+}

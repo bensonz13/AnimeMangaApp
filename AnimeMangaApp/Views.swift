@@ -31,11 +31,12 @@ struct HomeView: View {
     @State private var client = NetworkClient()
     @State private var showDetail = false
     @State private var detailType: MediaType = .anime
+    @State private var selectedGenre: AnimeGenre? = nil
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 25) {
+                VStack(alignment: .leading, spacing: 28) {
 
                     Text("Discover")
                         .font(.largeTitle).bold()
@@ -74,6 +75,43 @@ struct HomeView: View {
                         }
                         .frame(height: 240)
                         .tabViewStyle(.page)
+                    }
+
+                    RandomDiscoveryBanner { type in
+                        if type == .anime {
+                            await client.getRandomAnime()
+                            detailType = .anime
+                        } else {
+                            await client.getRandomManga()
+                            detailType = .manga
+                        }
+                        showDetail = true
+                    }
+                    .padding(.horizontal)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("🎭 Browse by Genre")
+                            .font(.title2).bold()
+                            .padding(.horizontal)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(AnimeGenre.allCases, id: \.self) { genre in
+                                    GenreChip(genre: genre, isSelected: selectedGenre == genre) {
+                                        selectedGenre = (selectedGenre == genre) ? nil : genre
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+
+                        if let genre = selectedGenre {
+                            GenreResultsView(genre: genre) { anime in
+                                await client.getAnimeByID(id: anime.mal_id)
+                                detailType = .anime
+                                showDetail = true
+                            }
+                        }
                     }
 
                     AnimeSectionView(title: "🔥 Trending Anime", items: client.topAnime) { anime in
