@@ -21,6 +21,8 @@ class NetworkClient {
     private var animePage = 1
     private var mangaPage = 1
     private var seasonPage = 1
+    
+    let excludeIDs = "12,49,9"
 
 
     private func fetch<T: Decodable>(_ urlStr: String, as type: T.Type) async throws -> T {
@@ -49,7 +51,7 @@ class NetworkClient {
 
     func getTopManga() async {
         do {
-            let response = try await fetch("\(baseURL)/top/manga?page=\(mangaPage)", as: MangaResponse.self)
+            let response = try await fetch("\(baseURL)/top/manga?page=\(mangaPage)&genres_exclude=\(excludeIDs)", as: MangaResponse.self)
             for item in response.data where !topManga.contains(where: { $0.mal_id == item.mal_id }) {
                 topManga.append(item)
             }
@@ -75,7 +77,7 @@ class NetworkClient {
     func searchManga(query: String) async -> [Manga] {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         do {
-            let response = try await fetch("\(baseURL)/manga?q=\(encoded)", as: MangaResponse.self)
+            let response = try await fetch("\(baseURL)/manga?q=\(encoded)&genres_exclude=\(excludeIDs)", as: MangaResponse.self)
             return response.data
         } catch { print("searchManga:", error); return [] }
     }
@@ -98,7 +100,7 @@ class NetworkClient {
 
     func getRandomAnime() async {
         do {
-            let response = try await fetch("\(baseURL)/random/anime", as: AnimeDetailResponse.self)
+            let response = try await fetch("\(baseURL)/random/anime?", as: AnimeDetailResponse.self)
             selectedAnime = response.data
         } catch { print("getRandomAnime:", error) }
     }

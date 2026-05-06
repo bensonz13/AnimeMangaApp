@@ -351,7 +351,12 @@ struct GenreResultsView: View {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
-            return response.data
+            return response.data.filter { anime in
+                guard let rating = anime.rating else { return true }
+                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
+                
+                return !isRestricted
+            }
         } catch {
             print("fetchByGenre error:", error)
             return []
@@ -500,7 +505,12 @@ struct GenreAllView: View {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
-            return response.data
+            return response.data.filter { anime in
+                guard let rating = anime.rating else { return true }
+                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
+                
+                return !isRestricted
+            }
         } catch {
             print("fetchAll error:", error)
             return []
