@@ -39,6 +39,7 @@ struct Manga: Identifiable, Codable {
     let status: String?
     let score: Double?
     let synopsis: String?
+    let genres: [Genre]?
 }
 
 struct Images: Codable {
@@ -69,6 +70,11 @@ struct MangaResponse: Codable {
 
 struct MangaDetailResponse: Codable {
     let data: Manga
+}
+
+struct Genre: Codable {
+    let mal_id: Int
+    let name: String
 }
 
 @Model

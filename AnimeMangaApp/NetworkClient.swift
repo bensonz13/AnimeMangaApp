@@ -99,17 +99,62 @@ class NetworkClient {
 
 
     func getRandomAnime() async {
-        do {
-            let response = try await fetch("\(baseURL)/random/anime?", as: AnimeDetailResponse.self)
-            selectedAnime = response.data
-        } catch { print("getRandomAnime:", error) }
+        var isRestricted = true
+        
+        while isRestricted {
+            do {
+                let response = try await fetch("\(baseURL)/random/anime", as: AnimeDetailResponse.self)
+                let anime = response.data
+                
+                if let rating = anime.rating {
+                    let matchesRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
+                    
+                    if !matchesRestricted {
+                        selectedAnime = anime
+                        isRestricted=false
+                    } else {
+                        print("restricted found: \(anime.title) has rating \(rating), retrying")
+                        try? await Task.sleep(for: .seconds(0.5))
+                    }
+                } else {
+                    selectedAnime = anime
+                    isRestricted = false
+                }
+                
+            } catch {
+                print("getRandomAnime:", error)
+                break
+            }
+        }
     }
 
     func getRandomManga() async {
-        do {
-            let response = try await fetch("\(baseURL)/random/manga", as: MangaDetailResponse.self)
-            selectedManga = response.data
-        } catch { print("getRandomManga:", error) }
+        var isRestricted = true
+        
+        let excludedArray = excludeIDs.split(separator: ",").compactMap { Int($0) }
+        
+        while isRestricted {
+            do {
+                let response = try await fetch("\(baseURL)/random/manga", as: MangaDetailResponse.self)
+                let manga=response.data
+                
+                let containsExcluded = manga.genres?.contains { genre in
+                    excludedArray.contains(genre.mal_id)
+                } ?? false
+                
+                if !containsExcluded {
+                    selectedManga = response.data
+                    isRestricted = false
+                } else {
+                    print("found excluded genre: \(manga.genres?.map{ $0.name } ?? [])")
+                    try? await Task.sleep(for: .seconds(0.5))
+                }
+                
+            } catch {
+                print("getRandomManga:", error)
+                break
+            }
+        }
     }
 
 
