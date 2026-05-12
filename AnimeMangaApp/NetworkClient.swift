@@ -146,7 +146,7 @@ class NetworkClient {
                     selectedManga = response.data
                     isRestricted = false
                 } else {
-                    print("found excluded genre: \(manga.genres?.map{ $0.name } ?? [])")
+                    print("found excluded genre: \(manga.genres?.map{ $0.name } ?? []) with title: \(manga.title)")
                     try? await Task.sleep(for: .seconds(0.5))
                 }
                 
