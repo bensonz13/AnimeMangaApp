@@ -131,13 +131,19 @@ struct HeartButton: View {
     }
 
     var body: some View {
-        Image(systemName: isFavorite ? "heart.fill" : "heart")
-            .font(.system(size: 16, weight: .bold))
-            .foregroundStyle(.red)
-            .shadow(color: .black.opacity(0.5), radius: 2)
-            .frame(width: 30, height: 30, alignment: .topLeading)
-            .contentShape(Rectangle())
-            .onTapGesture { toggle() }
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                toggle()
+            }
+        } label: {
+            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(.red)
+                .shadow(color: .black.opacity(0.5), radius: 2)
+                .frame(width: 30, height: 30, alignment: .topLeading)
+        }
+        .buttonStyle(.plain)
+        .symbolEffect(.bounce, value: isFavorite)
     }
 
     private func toggle() {
@@ -298,6 +304,10 @@ struct GenreResultsView: View {
     @State private var isLoading = true
     @State private var showAll = false
 
+    @Query private var settings: [UserSettings]
+
+    var currentSettings: UserSettings { settings.first ?? UserSettings() }
+
     var body: some View {
         Group {
             if isLoading {
@@ -345,18 +355,11 @@ struct GenreResultsView: View {
 
     private func fetchByGenre(genreID: Int, sortBy: GenreSortOption) async -> [Anime] {
         let urlStr = "https://api.jikan.moe/v4/anime?genres=\(genreID)&order_by=\(sortBy.apiValue)&sort=desc&limit=15"
-
         guard let url = URL(string: urlStr) else { return [] }
-
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
-            return response.data.filter { anime in
-                guard let rating = anime.rating else { return true }
-                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
-                
-                return !isRestricted
-            }
+            return NetworkClient().filterAnime(response.data, using: currentSettings)
         } catch {
             print("fetchByGenre error:", error)
             return []
@@ -437,9 +440,11 @@ struct GenreAllView: View {
     @State private var items: [Anime] = []
     @State private var isLoading = true
     @State private var selectedSort: GenreSortOption = .popular
-    @State private var showDetail = false
-    @State private var selectedAnime: Anime? = nil
     @Environment(\.dismiss) private var dismiss
+
+    @Query private var settings: [UserSettings]
+
+    var currentSettings: UserSettings { settings.first ?? UserSettings() }
 
     var body: some View {
         NavigationStack {
@@ -455,9 +460,7 @@ struct GenreAllView: View {
                         ) {
                             ForEach(items) { anime in
                                 PosterCard(anime: anime) {
-                                    selectedAnime = anime
                                     await onSelect(anime)
-                                    showDetail = true
                                 }
                             }
                         }
@@ -499,18 +502,11 @@ struct GenreAllView: View {
 
     private func fetchAll(sortBy: GenreSortOption) async -> [Anime] {
         let urlStr = "https://api.jikan.moe/v4/anime?genres=\(genre.id)&order_by=\(sortBy.apiValue)&sort=desc&limit=25"
-
         guard let url = URL(string: urlStr) else { return [] }
-
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
-            return response.data.filter { anime in
-                guard let rating = anime.rating else { return true }
-                let isRestricted = (try? /^R\+|^Rx/.firstMatch(in: rating)) != nil
-                
-                return !isRestricted
-            }
+            return NetworkClient().filterAnime(response.data, using: currentSettings)
         } catch {
             print("fetchAll error:", error)
             return []

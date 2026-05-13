@@ -33,6 +33,12 @@ struct HomeView: View {
     @State private var detailType: MediaType = .anime
     @State private var selectedGenre: AnimeGenre? = nil
 
+    @Query private var settings: [UserSettings]
+
+    var currentSettings: UserSettings {
+        settings.first ?? UserSettings()
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -79,10 +85,10 @@ struct HomeView: View {
 
                     RandomDiscoveryBanner { type in
                         if type == .anime {
-                            await client.getRandomAnime()
+                            await client.getRandomAnime(settings: currentSettings)
                             detailType = .anime
                         } else {
-                            await client.getRandomManga()
+                            await client.getRandomManga(settings: currentSettings)
                             detailType = .manga
                         }
                         showDetail = true
@@ -129,8 +135,8 @@ struct HomeView: View {
                 .padding(.vertical)
             }
             .task {
-                await client.getTopAnime()
-                await client.getTopManga()
+                await client.getTopAnime(settings: currentSettings)
+                await client.getTopManga(settings: currentSettings)
             }
             .sheet(isPresented: $showDetail) {
                 if detailType == .manga {
@@ -153,6 +159,12 @@ struct MediaView: View {
     @State private var searchTask: Task<Void, Never>? = nil
     @State private var showDetail = false
 
+    @Query private var settings: [UserSettings]
+
+    var currentSettings: UserSettings {
+        settings.first ?? UserSettings()
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -163,15 +175,24 @@ struct MediaView: View {
                         ProgressView().padding()
                             .onAppear {
                                 Task {
-                                    if type == .anime { await client.getTopAnime() }
-                                    else              { await client.getTopManga() }
+                                    if type == .anime {
+                                        await client.getTopAnime(settings: currentSettings)
+                                    } else {
+                                        await client.getTopManga(settings: currentSettings)
+                                    }
                                 }
                             }
                     }
                 }
             }
             .navigationTitle(type == .anime ? "Top Anime" : "Top Manga")
-            .task { loadInitial() }
+            .task {
+                if type == .anime, client.topAnime.isEmpty {
+                    await client.getTopAnime(settings: currentSettings)
+                } else if type == .manga, client.topManga.isEmpty {
+                    await client.getTopManga(settings: currentSettings)
+                }
+            }
             .sheet(isPresented: $showDetail) {
                 if type == .manga {
                     MediaDetailSheet(anime: nil, manga: client.selectedManga)
@@ -200,10 +221,10 @@ struct MediaView: View {
                         return
                     }
                     if type == .anime {
-                        let result = await client.searchAnime(query: trimmed)
+                        let result = await client.searchAnime(query: trimmed, settings: currentSettings)
                         await MainActor.run { searchResultsAnime = result }
                     } else {
-                        let result = await client.searchManga(query: trimmed)
+                        let result = await client.searchManga(query: trimmed, settings: currentSettings)
                         await MainActor.run { searchResultsManga = result }
                     }
                 }
@@ -236,27 +257,21 @@ struct MediaView: View {
             }
         }
     }
-
-    private func loadInitial() {
-        Task {
-            if type == .anime, client.topAnime.isEmpty { await client.getTopAnime() }
-            else if type == .manga, client.topManga.isEmpty { await client.getTopManga() }
-        }
-    }
 }
 
 struct MeView: View {
     @Query private var animeFavorites: [FavoriteAnime]
     @Query private var mangaFavorites: [FavoriteManga]
+    @Query private var settings: [UserSettings]
 
     @State private var client = NetworkClient()
     @State private var showDetail = false
     @State private var detailType: MediaType = .anime
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
             List {
-                
                 Section {
                     HStack {
                         Image(systemName: "person.circle.fill")
@@ -271,6 +286,12 @@ struct MeView: View {
                     .padding(.vertical, 6)
                 }
 
+                Section {
+                    Button("Content Filtering") {
+                        showSettings = true
+                    }
+                }
+
                 favoritesSection(title: "Favorite Anime", favorites: animeFavorites, isAnime: true)
                 favoritesSection(title: "Favorite Manga", favorites: mangaFavorites, isAnime: false)
             }
@@ -281,6 +302,9 @@ struct MeView: View {
                 } else {
                     MediaDetailSheet(anime: client.selectedAnime, manga: nil)
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView(settings: settings.first ?? UserSettings())
             }
         }
     }
@@ -350,6 +374,73 @@ extension FavoriteAnime: FavoriteItem {
 
 extension FavoriteManga: FavoriteItem {
     var malID: Int { id }
+}
+
+struct SettingsView: View {
+    @Bindable var settings: UserSettings
+
+    private let allRatings: [(code: String, description: String)] = [
+        ("G", "All Ages"),
+        ("PG", "Children"),
+        ("PG-13", "Teens 13+"),
+        ("R", "17+ (violence & profanity)"),
+        ("R+", "Mild Nudity"),
+        ("Rx", "Hentai")
+    ]
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Toggle("Safe Mode", isOn: $settings.isSafeContentOnly)
+                        .onChange(of: settings.isSafeContentOnly) { _, newValue in
+                            if newValue {
+                                settings.excludedRatings = ["R+", "Rx"]
+                            }
+                        }
+                } header: {
+                    Text("Automatically exclude R+ and Rx")
+                } footer: {
+                    Text("When Safe Mode is on, only the most mature ratings are hidden.")
+                }
+
+                if !settings.isSafeContentOnly {
+                    Section("Custom Exclusions") {
+                        ForEach(allRatings, id: \.code) { rating in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(rating.code).fontWeight(.medium)
+                                    Text(rating.description).font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if settings.excludedRatings.contains(rating.code) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                if let index = settings.excludedRatings.firstIndex(of: rating.code) {
+                                    settings.excludedRatings.remove(at: index)
+                                } else {
+                                    settings.excludedRatings.append(rating.code)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    Button("Reset to Safe Mode") {
+                        settings.isSafeContentOnly = true
+                        settings.excludedRatings = ["R+", "Rx"]
+                    }
+                }
+            }
+            .navigationTitle("Content Filtering")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
 }
 
 #Preview {

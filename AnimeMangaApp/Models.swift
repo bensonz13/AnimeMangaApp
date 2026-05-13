@@ -112,8 +112,22 @@ class UserSettings {
     var isSafeContentOnly: Bool
     var excludedRatings: [String]
     
-    init(isSafeContentOnly: Bool = true, excludedRatings: [String] = []) {
+    init(isSafeContentOnly: Bool = true, excludedRatings: [String] = ["R+", "Rx"]) {
         self.isSafeContentOnly = isSafeContentOnly
         self.excludedRatings = excludedRatings
+    }
+
+    var effectiveExcludedRatings: [String] {
+        if isSafeContentOnly {
+            return ["R+", "Rx"]
+        } else {
+            return excludedRatings
+        }
+    }
+
+    func isRatingAllowed(_ rating: String?) -> Bool {
+        guard let rating else { return true }
+        let excluded = effectiveExcludedRatings
+        return !excluded.contains { rating.hasPrefix($0) }
     }
 }
