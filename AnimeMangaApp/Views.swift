@@ -20,10 +20,78 @@ struct ContentView: View {
             MediaView(type: .manga)
                 .tabItem { Label("Manga", systemImage: "book") }
 
+            SeasonView()
+                .tabItem{ Label("Season", systemImage: "cloud.fill") }
+            
             MeView()
                 .tabItem { Label("Me", systemImage: "person") }
         }
         .toolbar(.visible, for: .tabBar)
+    }
+}
+
+struct SeasonView: View {
+    @State private var client = NetworkClient()
+    
+    private let currentYear = Calendar.current.component(.year, from: Date())
+    private let seasons = ["winter", "spring", "summer", "fall"]
+    private var years: [Int] { Array((1917...Calendar.current.component(.year, from: Date())).reversed()) }
+    
+    @State private var selectedYear = Calendar.current.component(.year, from: Date())
+    @State private var selectedSeason = "winter"
+    @State private var show = false
+    
+    @Query private var settings: [UserSettings]
+
+    var currentSettings: UserSettings {
+        settings.first ?? UserSettings()
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                if show {
+                    List(client.selectedSeason) { anime in
+                        MediaRow(anime: anime)
+                            .onAppear {
+                                if anime.id == client.selectedSeason.last?.id {
+                                    Task { await client.getAnimeSeason(year: selectedYear, season: selectedSeason, settings: currentSettings) }
+                                }
+                            }
+                    }
+                }
+                
+                HStack {
+                    Picker("\(selectedYear)", selection: $selectedYear) {
+                        ForEach(years, id: \.self) { year in
+                            Text(String(year)).tag(year)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .buttonStyle(.bordered)
+                    .tint(.primary)
+                    
+                    Picker(selection: $selectedSeason) {
+                        ForEach(seasons, id: \.self) { season in
+                            Text(season.capitalized).tag(season)
+                        }
+                    } label: {
+                        Text(selectedSeason.capitalized).fontWeight(.medium)
+                    }
+                    .pickerStyle(.menu)
+                    .menuIndicator(.hidden)
+                }
+                .padding(.horizontal)
+                
+                Button("Show Selected Season") {
+                    client.resetSeason()
+                    show = true
+                    Task { await client.getAnimeSeason(year: selectedYear, season: selectedSeason, settings: currentSettings) }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .navigationTitle("Seasons")
+        }
     }
 }
 
@@ -170,6 +238,7 @@ struct MediaView: View {
             ScrollView {
                 LazyVStack {
                     searchField
+                        .disableAutocorrection(true)
                     contentList
                     if query.isEmpty {
                         ProgressView().padding()

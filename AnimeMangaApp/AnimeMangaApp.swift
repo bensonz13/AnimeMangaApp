@@ -13,6 +13,7 @@ struct AnimeMangaApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .autocorrectionDisabled()
         }
         .modelContainer(for: [FavoriteAnime.self, FavoriteManga.self, UserSettings.self]) { result in
             if case .success(let container) = result {
