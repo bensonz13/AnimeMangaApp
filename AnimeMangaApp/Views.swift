@@ -96,7 +96,7 @@ struct HomeView: View {
                     .padding(.horizontal)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("🎭 Browse by Genre")
+                        Text("Browse by Genre")
                             .font(.title2).bold()
                             .padding(.horizontal)
 
@@ -120,13 +120,13 @@ struct HomeView: View {
                         }
                     }
 
-                    AnimeSectionView(title: "🔥 Trending Anime", items: client.topAnime) { anime in
+                    AnimeSectionView(title: "Trending Anime", items: client.topAnime) { anime in
                         await client.getAnimeByID(id: anime.mal_id)
                         detailType = .anime
                         showDetail = true
                     }
 
-                    MangaSectionView(title: "📚 Popular Manga", items: client.topManga) { manga in
+                    MangaSectionView(title: "Popular Manga", items: client.topManga) { manga in
                         await client.getMangaByID(id: manga.mal_id)
                         detailType = .manga
                         showDetail = true
@@ -439,6 +439,111 @@ struct SettingsView: View {
             }
             .navigationTitle("Content Filtering")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+struct GenreAllView: View {
+    let genre: AnimeGenre
+    let onSelect: (Anime) async -> Void
+
+    @State private var items: [Anime] = []
+    @State private var isLoading = true
+    @State private var selectedSort: GenreSortOption = .popular
+    @Environment(\.dismiss) private var dismiss
+
+    @Query private var settings: [UserSettings]
+    var currentSettings: UserSettings { settings.first ?? UserSettings() }
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(items) { anime in
+                                SmallPosterCard(anime: anime)
+                            }
+                        }
+                        .padding(12)
+                    }
+                }
+            }
+            .navigationTitle("\(genre.rawValue)")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .task(id: selectedSort) {
+                isLoading = true
+                items = await fetchAll(sortBy: selectedSort)
+                isLoading = false
+            }
+        }
+    }
+
+    private func fetchAll(sortBy: GenreSortOption) async -> [Anime] {
+        var results: [Anime] = []
+        for page in 1...5 {
+            let urlStr = "https://api.jikan.moe/v4/anime?genres=\(genre.id)&order_by=\(sortBy.apiValue)&sort=desc&limit=25&page=\(page)"
+            guard let url = URL(string: urlStr) else { continue }
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let response = try JSONDecoder().decode(AnimeResponse.self, from: data)
+                let filtered = NetworkClient().filterAnime(response.data, using: currentSettings)
+                results.append(contentsOf: filtered)
+                if !response.pagination.has_next_page { break }
+                try? await Task.sleep(for: .milliseconds(400))
+            } catch {
+                print("fetchAll page \(page):", error)
+            }
+        }
+        return results
+    }
+}
+
+struct SmallPosterCard: View {
+    let anime: Anime
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if let urlString = anime.images?.jpg.image_url,
+                       let url = URL(string: urlString) {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Color.gray.opacity(0.3)
+                        }
+                    } else {
+                        Color.gray.opacity(0.3)
+                    }
+                }
+                .frame(height: 140)
+                .clipped()
+                .cornerRadius(10)
+
+                HeartButton(anime: anime)
+                    .padding(6)
+            }
+
+            Text(anime.title)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
