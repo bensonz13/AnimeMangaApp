@@ -303,16 +303,18 @@ struct MediaView: View {
     @ViewBuilder
     private var contentList: some View {
         if type == .anime {
-            ForEach(query.isEmpty ? client.topAnime : searchResultsAnime) { anime in
-                MediaRow(anime: anime)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        Task {
-                            await client.getAnimeByID(id: anime.mal_id)
-                            showDetail = true
-                        }
-                    }
-            }
+            let sourceAnime = query.isEmpty ? client.topAnime : searchResultsAnime
+            let enumeratedAnime = Array(sourceAnime.enumerated())
+            ForEach(enumeratedAnime, id: \.offset) { index, anime in
+               MediaRow(anime: anime)
+                   .contentShape(Rectangle())
+                   .onTapGesture {
+                       Task {
+                           await client.getAnimeByID(id: anime.mal_id)
+                           showDetail = true
+                       }
+                   }
+           }
         } else {
             ForEach(query.isEmpty ? client.topManga : searchResultsManga) { manga in
                 MediaRow(manga: manga)

@@ -94,7 +94,7 @@ class NetworkClient {
         var attempts = 0
         let maxAttempts = 10
         
-        while isRestricted && attempts < maxAttempts {
+        while isRestricted && (attempts < maxAttempts) {
             attempts += 1
             do {
                 let response = try await fetch("\(baseURL)/random/anime", as: AnimeDetailResponse.self)
@@ -103,12 +103,14 @@ class NetworkClient {
                 if settings.isRatingAllowed(anime.rating) {
                     selectedAnime = anime
                     isRestricted = false
+                    attempts = 0
                 } else {
                     print("restricted found: \(anime.title) has rating \(anime.rating ?? "nil"), retrying")
                     try? await Task.sleep(for: .seconds(0.5))
                 }
             } catch {
                 print("getRandomAnime:", error)
+                isRestricted=false
                 break
             }
         }
@@ -123,7 +125,7 @@ class NetworkClient {
         var attempts = 0
         let maxAttempts = 10
         
-        while isRestricted && attempts < maxAttempts {
+        while isRestricted && (attempts < maxAttempts) {
             attempts += 1
             do {
                 let response = try await fetch("\(baseURL)/random/manga", as: MangaDetailResponse.self)
@@ -136,12 +138,14 @@ class NetworkClient {
                 if !containsExcluded {
                     selectedManga = manga
                     isRestricted = false
+                    attempts = 0
                 } else {
                     print("found excluded genre: \(manga.genres?.map{ $0.name } ?? []) with title: \(manga.title)")
                     try? await Task.sleep(for: .seconds(0.5))
                 }
             } catch {
                 print("getRandomManga:", error)
+                isRestricted=false
                 break
             }
         }

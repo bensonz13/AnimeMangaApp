@@ -181,7 +181,8 @@ struct AnimeSectionView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
-                    ForEach(items) { anime in
+                    let enumeratedItems = Array(items.enumerated())
+                    ForEach(enumeratedItems, id: \.offset) { index, anime in
                         PosterCard(anime: anime) { await onSelect(anime) }
                     }
                 }

@@ -46,7 +46,7 @@ struct MediaDetailSheet: View {
                     } placeholder: {
                         Color.gray.opacity(0.3)
                     }
-                    .frame(maxWidth: .infinity)
+                    .containerRelativeFrame(.horizontal)
                     .frame(height: 280)
                     .clipped()
                 }
@@ -103,6 +103,7 @@ struct MediaDetailSheet: View {
                     }
                 }
                 .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .ignoresSafeArea(edges: .top)
